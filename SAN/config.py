@@ -5,8 +5,6 @@ Created on Mon Apr 15 09:29:25 2019
 @author: hai huynh
 """
 
-import tf_functions as fn
-
 """
 Read data
 """

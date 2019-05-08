@@ -17,11 +17,11 @@ def trans_space(df_: np.array):
         df_: 3D array which is numpy array
     """
     if not df_ is None:
-        # 1D to 3D
+        # 2D to 3D
         if len(df_.shape) > 1:
             df_ = np.array([df_])
             df_ = np.reshape(df_, (df_.shape[1], df_.shape[2], 1))
-        # 2D to 3D
+        # 1D to 3D
         else:
             df_ = np.array([[df_.values]])
             df_ = np.reshape(df_, (df_.shape[2], df_.shape[1], 1))

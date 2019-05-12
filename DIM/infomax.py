@@ -11,26 +11,24 @@ import tensorflow as tf
 import loss_func as losses
 
 class infomax:
-    def __init__(self, x_train_tf, x_test_tf):
-        self.x_train = x_train_tf
-        self.x_test = x_test_tf
+    def __init__(self, x_tf):
+        self.x_tf = x_tf
+        # if training 0.3, else 1
+        self.drop = tf.placeholder(tf.float32)
     
     
-    def model(self, is_train=True):
-        if is_train:
-            fed = self.x_train
-        else:
-            fed = self.x_test
+    def model(self):
+        fed = self.x_tf
         
         returns_ = {}
-        shared_map = block.convNet(fed, reuse=not is_train)
+        shared_map = block.convNet(fed)
         
         """
         image-oriented(global objective)
         """
         # Create global feature
-        gbl_gbl = block.fc_global(shared_map, name='Generator/fc_global/global/', 
-                                  is_train=is_train, reuse=not is_train)
+        gbl_gbl = block.fc_global(shared_map, drop=self.drop,
+                                  name='Generator/fc_global/global/')
         # Create local feature
         gbl_lcl = block.flatten_fm(shared_map)
         # Create score map
@@ -41,11 +39,11 @@ class infomax:
         patch-oriented(local objective)
         """
         # Create global feature
-        lcl_gbl = block.fc_global(gbl_gbl, name='Generator/fc_global/local/', 
-                                  is_train=is_train, reuse=not is_train)
+        lcl_gbl = block.fc_global(gbl_gbl, drop=self.drop,
+                                  name='Generator/fc_global/local/')
         returns_['global_feature'] = lcl_gbl
         # Create local feature
-        lcl_lcl = block.conv_1x1(shared_map, reuse=not is_train)
+        lcl_lcl = block.conv_1x1(shared_map)
         lcl_lcl = block.flatten_fm(lcl_lcl)
         # Create score map
         lcl_score_map = block.score_map(lcl_gbl, lcl_lcl)
@@ -58,10 +56,10 @@ class infomax:
         real_fm = lcl_gbl
         fake_fm = block.permutation_batch(real_fm)
         # Calculate real probability
-        real_prob = block.fc_disc(real_fm, is_train=is_train, reuse=not is_train)
+        real_prob = block.fc_disc(real_fm, drop=self.drop)
         returns_['real_score'] = real_prob
         # Calculate fake probability
-        fake_prob = block.fc_disc(fake_fm, is_train=is_train, reuse=True)
+        fake_prob = block.fc_disc(fake_fm, drop=self.drop, reuse=True)
         returns_['fake_score'] = fake_prob
         
         return returns_
@@ -95,14 +93,7 @@ class infomax:
         disc_opt = tf.train.AdamOptimizer(learning_rate=config.l_rate) \
                                         .minimize(disc_loss, var_list=disc_vars)
         
-        """
-        Test
-        """
-        # Run model
-        test_out = self.model(is_train=False)
-        test_feature = test_out['global_feature']
-        
-        return {'global_feature': global_feature, 'test_feature': test_feature,
+        return {'global_feature': global_feature,
                 'gbl_JSD': gbl_JSD, 'lcl_JSD': lcl_JSD, 
                 'gen_loss': gen_loss, 'disc_loss': disc_loss,
                 'gen_opt': gen_opt, 'disc_opt': disc_opt}

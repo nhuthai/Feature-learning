@@ -12,21 +12,15 @@ from config import l_rate
 
 
 class conv_simple:
-    def __init__(self, x_train_tf, y_train_tf, x_test_tf, y_test_tf):
-        self.x_train = x_train_tf
-        self.y_train = y_train_tf
-                
-        self.x_test = x_test_tf
-        self.y_test = y_test_tf
+    def __init__(self, x_tf, y_tf):
+        self.x_train = x_tf
+        self.y_train = y_tf
+        # if training: 0.3 else: 1
+        self.keep_prob = tf.placeholder(tf.float32)
     
         
-    def model(self, is_train=True):
-        if is_train:
-            fed = self.x_train
-        else:
-            fed = self.x_test
-            
-        reuse = not is_train
+    def model(self):
+        fed = self.x_train
         
         returns_ = {}
         
@@ -34,15 +28,15 @@ class conv_simple:
         Feature extraction
         """
         args = {"n_hid_channel": 1, "n_in_channel": 1, "n_out_channel": 1, 
-                "n_heads": 5, "drop": 0.3}
-        high_feature, self.similar = attention(fed, args, reuse, train=is_train)
+                "n_heads": 5}
+        high_feature, self.similar = attention(fed, args, drop=self.keep_prob)
         
         """
         Convolutional Net
         """
-        with tf.variable_scope('conv', reuse=reuse):
+        with tf.variable_scope('conv'):
             conv = tf.layers.conv1d(high_feature, 16, 3, strides=2)
-            bn = tf.layers.batch_normalization(conv, training=is_train)
+            bn = tf.layers.batch_normalization(conv)
             lrelu = tf.nn.leaky_relu(bn)
             pool = tf.layers.average_pooling1d(lrelu, 2, 2)
             
@@ -54,7 +48,7 @@ class conv_simple:
         vtor = tf.layers.flatten(pool)
         
         regress = tf.layers.dense(vtor, 1)
-        regress = tf.layers.dropout(regress, rate=0.3, training=is_train)
+        regress = tf.layers.dropout(regress, rate=self.keep_prob)
         
         returns_['regression'] = regress
         
@@ -65,17 +59,11 @@ class conv_simple:
         """
         Optimization
         """
-        train_pred = self.model()
-        loss_op = tf.reduce_mean(tf.pow(train_pred['regression'] - self.y_train, 2)) / 2
+        pred_ = self.model()
+        loss_ = tf.reduce_mean(tf.pow(pred_['regression'] - self.y_train, 2)) / 2
         optimizer = tf.train.AdamOptimizer(learning_rate=l_rate)
-        train_op = optimizer.minimize(loss_op)
-        
-        """
-        Validation
-        """        
-        test_pred = self.model(is_train=False)
-        loss_test = tf.reduce_mean(tf.pow(test_pred['reg'] - self.y_test, 2)) / 2
+        train_op = optimizer.minimize(loss_)
         
         return {'train_op': train_op, 
-                'loss_train': loss_op, 'loss_test': loss_test,
-                'train_features': train_pred, 'test_features': test_pred}
+                'loss': loss_,
+                'features': pred_}

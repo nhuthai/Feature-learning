@@ -10,7 +10,7 @@ import math
 
 from functools import reduce
 
-def attention(in_, args, reuse, **kwargs):
+def attention(in_, args, **kwargs):
     fed = {}
     if 'key' in kwargs or 'query' in kwargs:
         fed['value'] = in_
@@ -49,7 +49,7 @@ def attention(in_, args, reuse, **kwargs):
     def concate(x, y):
         return tf.concat([x, y], 1)
     
-    with tf.variable_scope('attention', reuse=reuse):
+    with tf.variable_scope('attention'):
         # Layer norm
         fed['key'] = tf.contrib.layers.layer_norm(fed['key'])
         fed['query'] = tf.contrib.layers.layer_norm(fed['query'])
@@ -63,8 +63,7 @@ def attention(in_, args, reuse, **kwargs):
         # Concat heads and linear transformation (in order to use dropout)
         multihead = reduce(concate, heads)
         multihead = tf.layers.dense(multihead, args['n_in_channel'])
-        multihead = tf.layers.dropout(multihead, rate=args['drop'], 
-                                      training=is_train)
+        multihead = tf.layers.dropout(multihead, rate=kwargs['drop'])
         
         # Residual
         residual = tf.tile(fed['value'], [1,args['n_heads'],1])
@@ -77,7 +76,7 @@ def attention(in_, args, reuse, **kwargs):
         hid = tf.layers.dense(fed_reg, args['n_out_channel'], activation=tf.nn.leaky_relu)
         # Linear transformation (in order to use dropout)
         hid = tf.layers.dense(hid, args['n_out_channel'])
-        hid = tf.layers.dropout(hid, rate=args['drop'], training=is_train)
+        hid = tf.layers.dropout(hid, rate=kwargs['drop'], training=is_train)
         
         # Residual
         new_representation = tf.add(hid, fed_reg)

@@ -30,11 +30,10 @@ def run(x_train, x_test):
     err_track = {}
     
     # Set placeholders
-    x_train_ph = tf.placeholder(tf.float32, [config.batch_size, size_img, size_img, 1])
-    x_test_ph = tf.placeholder(tf.float32, [config.batch_size, size_img, size_img, 1])
+    x_ph = tf.placeholder(tf.float32, [config.batch_size, size_img, size_img, 1])
     
     # Create models
-    DIM_model = infomax(x_train_ph, x_test_ph)
+    DIM_model = infomax(x_ph)
     
     opt_ = DIM_model.optimize()
     # List for error tracking
@@ -68,21 +67,19 @@ def run(x_train, x_test):
                 e = min(len(x_train), s + config.batch_size - 1)
                 m_x_train = s_y_train[s:e]
                 
-                if (epoch + 1) % config.disp_step != 0 or i_batch != n_batches - 1:
-                    sess.run([opt_['gen_opt'], opt_['disc_opt']], 
-                             feed_dict={DIM_model.x_train: m_x_train})
+                _, _, gbl_feature, gbl_JSD, lcl_JSD, gen_loss, disc_loss =    \
+                                sess.run([opt_['gen_opt'], opt_['disc_opt'], 
+                                          opt_['global_feature'],
+                                          opt_['gbl_JSD'], opt_['lcl_JSD'],
+                                          opt_['gen_loss'], opt_['disc_loss']], 
+                         feed_dict={DIM_model.x_tf: m_x_train, 
+                                    DIM_model.drop: config.drop})
                 ### At particular epoch, show loss of train and test, features of 
                 ### train and test
-                else:
-                    _, _, gbl_feature, gbl_JSD, lcl_JSD,                \
-                                gen_loss, disc_loss, test_feature =     \
-                        sess.run([opt_['gen_opt'], opt_['disc_opt'], 
-                                  opt_['global_feature'], 
-                                  opt_['gbl_JSD'], opt_['lcl_JSD'],
-                                  opt_['gen_loss'], opt_['disc_loss'],
-                                  opt_['test_feature']],
-                                feed_dict={DIM_model.x_train: m_x_train,
-                                           DIM_model.x_test: x_test})
+                if (epoch + 1) % config.disp_step == 0 and i_batch == n_batches - 1:
+                    test_feature = sess.run(opt_['global_feature'],
+                                            feed_dict={DIM_model.x_tf: x_test,
+                                                       DIM_model.drop: 1.})
     
                     # Evaluate global feature
                     eval_train = eval.eval(gbl_feature)

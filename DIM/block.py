@@ -38,14 +38,14 @@ def conv_1x1(in_, name='Generator/conv_1x1/', reuse=False):
     return fm_
 
 
-def fc_global(in_, name='Generator/fc_global/', is_train=True, reuse=False):
+def fc_global(in_, drop, name='Generator/fc_global/', reuse=False):
     fm_ = None
     with tf.variable_scope(name, reuse=reuse):
         for branch in config.fc_global_arg:
             fed = in_
             for i_layer, args in branch.items():
                 fed = tf.layers.dense(fed, args['n_hid'], activation=args['activation'])
-                fed = tf.layers.dropout(fed, rate=args['drop'], training=is_train)
+                fed = tf.layers.dropout(fed, rate=drop)
                 
             if fm_ is None:
                 fm_ = fed
@@ -55,12 +55,12 @@ def fc_global(in_, name='Generator/fc_global/', is_train=True, reuse=False):
     return fm_
 
 
-def fc_disc(in_, name='Discriminator/', is_train=True, reuse=False):
+def fc_disc(in_, drop, name='Discriminator/', reuse=False):
     prob = in_
     with tf.variable_scope(name, reuse=reuse):
         for i_layer, args in config.fc_disc_arg.items():
             prob = tf.layers.dense(prob, args['n_hid'], activation=args['activation'])
-            prob = tf.layers.dropout(prob, rate=args['drop'], training=is_train)
+            prob = tf.layers.dropout(prob, rate=drop)
         
     return prob
 

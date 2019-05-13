@@ -24,6 +24,7 @@ conv simple
 l_rate = 1e-3
 n_epochs = 100
 disp_step = 10
+drop = 0.3
 
 """
 training

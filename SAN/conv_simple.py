@@ -8,14 +8,14 @@ Created on Thu Apr 18 15:28:02 2019
 import tensorflow as tf
 
 from attention import attention
-from config import l_rate
+from config import l_rate, drop
 
 
 class conv_simple:
     def __init__(self, x_tf, y_tf):
         self.x_train = x_tf
         self.y_train = y_tf
-        # if training: 0.3 else: 1
+        # if training: 1 else: 0
         self.keep_prob = tf.placeholder(tf.float32)
     
         
@@ -29,7 +29,9 @@ class conv_simple:
         """
         args = {"n_hid_channel": 1, "n_in_channel": 1, "n_out_channel": 1, 
                 "n_heads": 5}
-        high_feature, self.similar = attention(fed, args, drop=self.keep_prob)
+        high_feature, self.similar = attention(fed, args, 
+                                               drop=tf.minimum(self.keep_prob,
+                                                               drop))
         
         """
         Convolutional Net
@@ -48,7 +50,8 @@ class conv_simple:
         vtor = tf.layers.flatten(pool)
         
         regress = tf.layers.dense(vtor, 1)
-        regress = tf.layers.dropout(regress, rate=self.keep_prob)
+        regress = tf.layers.dropout(regress, rate=tf.minimum(self.keep_prob,
+                                                             drop))
         
         returns_['regression'] = regress
         

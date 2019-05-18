@@ -51,6 +51,17 @@ def attention(in_, args, **kwargs):
     Limited Attention
     """
     def limit_attention(prev, feed):
+        # extract as patches [batch, channel, patch, length]
+        k_patches = tf.extract_image_patches(feed['key'], ksizes=[1,1,3,1], 
+                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+                                           padding='VALID')
+        q_patches = tf.extract_image_patches(feed['query'], ksizes=[1,1,3,1], 
+                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+                                           padding='VALID')
+        v_patches = tf.extract_image_patches(feed['value'], ksizes=[1,1,3,1], 
+                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+                                           padding='VALID')
+        
         return one_head(feed['key'], feed['query'], feed['value'])
     
     """

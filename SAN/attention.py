@@ -51,20 +51,24 @@ def attention(in_, args, **kwargs):
     Limited Attention
     """
     def limit_attention(prev, feed):
-        # extract as patches [batch, channel, patch, length]
-        k_patches = tf.extract_image_patches(feed['key'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
-                                           padding='VALID')
-        q_patches = tf.extract_image_patches(feed['query'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
-                                           padding='VALID')
-        v_patches = tf.extract_image_patches(feed['value'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
-                                           padding='VALID')
-        # Change dimensions [patch, batch, length, channel]
-        k_patches = tf.transpose(k_patches, perm=[2, 0, 3, 1])
-        q_patches = tf.transpose(q_patches, perm=[2, 0, 3, 1])
-        v_patches = tf.transpose(v_patches, perm=[2, 0, 3, 1])
+        def preprocess_patches(keyword):
+            # extract as patches [batch, channel, patch, length]
+            patches = tf.extract_image_patches(feed[keyword], ksizes=[1,1,3,1], 
+                                               strides=[1,1,1,1], rates=[1,1,1,1], 
+                                               padding='VALID')
+            # Change dimensions [patch, batch, length, channel]
+            patches = tf.transpose(patches, perm=[2, 0, 3, 1])
+            # Add dummy
+            first = patches[0, :, :, :]
+            first = tf.reshape(first, (1, -1, 3, 1))
+            new_patches = tf.concat([first, patches], 0)
+            
+            return new_patches
+           
+        # doing
+        att = tf.scan(one_head, new_patches)
+        # eliminate dummy
+        att = att[1:, :, :, :]
         
         return one_head(feed['key'], feed['query'], feed['value'])
     

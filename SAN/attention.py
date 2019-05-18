@@ -22,7 +22,9 @@ def attention(in_, args, **kwargs):
         fed['value'] = in_
     is_train = kwargs['train'] if 'train' in kwargs else False
     
-    # Helper functions
+    """
+    Single head
+    """
     def one_head(key, query, value, bias=None):
         # linear transformation
         trans_k = tf.layers.dense(key, args['n_hid_channel'])
@@ -45,7 +47,15 @@ def attention(in_, args, **kwargs):
         
         return [head, similarity]
     
+    """
+    Limited Attention
+    """
+    def limit_attention(prev, feed):
+        return one_head(feed['key'], feed['query'], feed['value'])
     
+    """
+    Multi-head
+    """
     def concate(x, y):
         return tf.concat([x, y], 1)
     
@@ -57,6 +67,7 @@ def attention(in_, args, **kwargs):
         # Attention blocks
         meta_heads = map(lambda x: one_head(fed['key'], fed['query'], fed['value']), 
                           range(args['n_heads']))
+        #meta_heads = map(lambda x: one_head(fed), range(args['n_heads']))
         meta_heads = list(map(list, zip(*meta_heads)))
         heads = meta_heads[0]
         similarity = meta_heads[-1]

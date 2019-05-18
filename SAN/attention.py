@@ -61,6 +61,10 @@ def attention(in_, args, **kwargs):
         v_patches = tf.extract_image_patches(feed['value'], ksizes=[1,1,3,1], 
                                            strides=[1,1,1,1], rates=[1,1,1,1], 
                                            padding='VALID')
+        # Change dimensions [patch, batch, length, channel]
+        k_patches = tf.transpose(k_patches, perm=[2, 0, 3, 1])
+        q_patches = tf.transpose(q_patches, perm=[2, 0, 3, 1])
+        v_patches = tf.transpose(v_patches, perm=[2, 0, 3, 1])
         
         return one_head(feed['key'], feed['query'], feed['value'])
     

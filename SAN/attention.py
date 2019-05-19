@@ -81,11 +81,8 @@ def attention(in_, args, **kwargs):
             return tf.manip.roll(in_, shift=i[0], axis=1)
         
         def sum_up(prev, in_):
-            with tf.variable_scope("sum_up", reuse=tf.AUTO_REUSE):
-                w = tf.Variable(np.reshape(np.arange(2, 11), (1, 9, 1)))
-                w = tf.cast(w, tf.float32)
-                
-                linear = tf.multiply(prev, w) + in_
+            with tf.variable_scope("sum_up", reuse=tf.AUTO_REUSE):                
+                linear = tf.layers.dense(prev, units=1) + in_
                 
             return linear
         

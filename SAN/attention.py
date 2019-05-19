@@ -52,6 +52,9 @@ def attention(in_, args, **kwargs):
     """
     def limit_attention(prev, feed):
         patches = {}
+        """
+        Attention
+        """
         # extract as patches [batch, channel, patch, length]
         patches['key'] = tf.extract_image_patches(feed['key'], ksizes=[1,1,3,1], 
                                            strides=[1,1,1,1], rates=[1,1,1,1], 
@@ -71,7 +74,32 @@ def attention(in_, args, **kwargs):
         att = tf.map_fn(lambda x: one_head(x['key'], x['query'], x['value']), 
                         patches, name='map_attention')
         
-        return
+        """
+        Intergration
+        """
+        def shift(in_, i):
+            return tf.manip.roll(in_, shift=i[0], axis=1)
+        
+        def sum_up(prev, in_):
+            with tf.variable_scope("sum_up", reuse=tf.AUTO_REUSE):
+                w = tf.Variable(np.reshape(np.arange(2, 11), (1, 9, 1)))
+                w = tf.cast(w, tf.float32)
+                
+                linear = tf.multiply(prev, w) + in_
+                
+            return linear
+        
+        # Padding
+        pad = tf.zeros([tf.shape(att)[0], tf.shape(att)[1], 6, 1], name='pad_zeros')
+        pad_att_ = tf.concat([att, pad], 2)
+        i_pad = tf.expand_dims(tf.range(tf.shape(pad_att_)[0], dtype=tf.int32), 1)
+        pad_att, _ = tf.map_fn(lambda x: (shift(x[0], x[1]), x[1]), (pad_att_, i_pad),
+                               name='padding')
+        # Sum-up
+        re = tf.scan(sum_up, pad_att, name='weighted_sum')
+        new_feature = re[-1]
+        
+        return new_feature
     
     """
     Multi-head

@@ -27,6 +27,12 @@ disp_step = 10
 drop = 0.3
 
 """
+attention
+"""
+width_san = 400
+step_san = 100
+
+"""
 training
 """
 batch_size = 200

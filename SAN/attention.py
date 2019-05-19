@@ -9,6 +9,7 @@ import tensorflow as tf
 import math
 
 from functools import reduce
+from config import step_san, width_san, hi_wl, lo_wl
 
 def attention(in_, args, **kwargs):
     fed = {}
@@ -52,18 +53,25 @@ def attention(in_, args, **kwargs):
     """
     def limit_attention(prev, feed):
         patches = {}
+        n_wavelengths = hi_wl - lo_wl + 1
         """
         Attention
         """
         # extract as patches [batch, channel, patch, length]
-        patches['key'] = tf.extract_image_patches(feed['key'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+        patches['key'] = tf.extract_image_patches(feed['key'], 
+                                           ksizes=[1,1,width_san,1], 
+                                           strides=[1,1,step_san,1], 
+                                           rates=[1,1,1,1], 
                                            padding='VALID')
-        patches['query'] = tf.extract_image_patches(feed['query'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+        patches['query'] = tf.extract_image_patches(feed['query'], 
+                                           ksizes=[1,1,width_san,1], 
+                                           strides=[1,1,step_san,1], 
+                                           rates=[1,1,1,1], 
                                            padding='VALID')
-        patches['value'] = tf.extract_image_patches(feed['value'], ksizes=[1,1,3,1], 
-                                           strides=[1,1,1,1], rates=[1,1,1,1], 
+        patches['value'] = tf.extract_image_patches(feed['value'], 
+                                           ksizes=[1,1,width_san,1], 
+                                           strides=[1,1,step_san,1], 
+                                           rates=[1,1,1,1], 
                                            padding='VALID')
         # Change dimensions [patch, batch, length, channel]
         patches['key'] = tf.transpose(patches['key'], perm=[2, 0, 3, 1])
@@ -87,7 +95,8 @@ def attention(in_, args, **kwargs):
             return linear
         
         # Padding
-        pad = tf.zeros([tf.shape(att)[0], tf.shape(att)[1], 6, 1], name='pad_zeros')
+        pad = tf.zeros([tf.shape(att)[0], tf.shape(att)[1], 
+                        n_wavelengths - step_san, 1], name='pad_zeros')
         pad_att_ = tf.concat([att, pad], 2)
         i_pad = tf.expand_dims(tf.range(tf.shape(pad_att_)[0], dtype=tf.int32), 1)
         pad_att, _ = tf.map_fn(lambda x: (shift(x[0], x[1]), x[1]), (pad_att_, i_pad),
